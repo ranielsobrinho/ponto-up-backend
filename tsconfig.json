@@ -1,0 +1,3 @@
+{
+  "extends": "@ponto-up-backend/config/tsconfig.base.json"
+}

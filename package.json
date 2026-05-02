@@ -1,0 +1,44 @@
+{
+  "name": "ponto-up-backend",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "type": "module",
+  "scripts": {
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "check-types": "npm run check-types --workspaces",
+    "dev:server": "npm run dev --workspace server",
+    "db:push": "npm run db:push --workspace @ponto-up-backend/db",
+    "db:studio": "npm run db:studio --workspace @ponto-up-backend/db",
+    "db:generate": "npm run db:generate --workspace @ponto-up-backend/db",
+    "db:migrate": "npm run db:migrate --workspace @ponto-up-backend/db",
+    "db:start": "npm run db:start --workspace @ponto-up-backend/db",
+    "db:watch": "npm run db:watch --workspace @ponto-up-backend/db",
+    "db:stop": "npm run db:stop --workspace @ponto-up-backend/db",
+    "db:down": "npm run db:down --workspace @ponto-up-backend/db",
+    "check": "biome check --write .",
+    "prepare": "husky"
+  },
+  "dependencies": {
+    "@ponto-up-backend/env": "*",
+    "dotenv": "^17.2.2",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.0",
+    "@ponto-up-backend/config": "*",
+    "@types/node": "^22.13.14",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
+    "typescript": "^6"
+  },
+  "lint-staged": {
+    "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}": [
+      "biome check --write ."
+    ]
+  },
+  "packageManager": "npm@11.12.1"
+}
