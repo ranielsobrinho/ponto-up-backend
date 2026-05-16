@@ -1,4 +1,5 @@
 import type {
+	AdminSignUpParams,
 	AuthResult,
 	SignInParams,
 	SignUpParams,
@@ -6,5 +7,6 @@ import type {
 
 export interface AuthServiceProtocol {
 	signUp(params: SignUpParams): Promise<AuthResult>;
+	adminSignUp(params: AdminSignUpParams): Promise<AuthResult>;
 	signIn(params: SignInParams): Promise<AuthResult>;
 }

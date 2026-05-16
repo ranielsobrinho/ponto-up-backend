@@ -1,4 +1,4 @@
-import type { AuthServiceProtocol } from "@/data/protocols/auth-protocol";
+import type { AuthServiceProtocol } from "@/data/protocols/db/auth-protocol";
 import type { AuthResult, SignInParams } from "@/domain/models/user";
 import type { SignIn } from "@/domain/usecases/signin";
 

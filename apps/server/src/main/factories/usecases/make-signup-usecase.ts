@@ -1,5 +1,5 @@
-import { SignUpUseCase } from "@/data/usecases/signup-usecase";
-import { BetterAuthService } from "@/infra/auth-service";
+import { SignUpUseCase } from "@/data/usecases/auth/signup-usecase";
+import { BetterAuthService } from "@/infra/db/auth-service";
 
 export const makeSignUpUseCase = () => {
 	const authService = new BetterAuthService();

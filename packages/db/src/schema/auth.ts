@@ -7,6 +7,10 @@ export const user = pgTable("user", {
 	email: text("email").notNull().unique(),
 	emailVerified: boolean("email_verified").default(false).notNull(),
 	image: text("image"),
+	role: text("role").default("user").notNull(),
+	banned: boolean("banned").default(false).notNull(),
+	bannedReason: text("banned_reason"),
+	bannedExpires: timestamp("banned_expires"),
 	createdAt: timestamp("created_at").defaultNow().notNull(),
 	updatedAt: timestamp("updated_at")
 		.defaultNow()
@@ -30,7 +34,7 @@ export const session = pgTable(
 			.notNull()
 			.references(() => user.id, { onDelete: "cascade" }),
 	},
-	(table) => [index("session_userId_idx").on(table.userId)],
+	(table) => [index("idx_session_user_id").on(table.userId)],
 );
 
 export const account = pgTable(
@@ -54,7 +58,7 @@ export const account = pgTable(
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
 	},
-	(table) => [index("account_userId_idx").on(table.userId)],
+	(table) => [index("idx_account_user_id").on(table.userId)],
 );
 
 export const verification = pgTable(
@@ -70,7 +74,7 @@ export const verification = pgTable(
 			.$onUpdate(() => /* @__PURE__ */ new Date())
 			.notNull(),
 	},
-	(table) => [index("verification_identifier_idx").on(table.identifier)],
+	(table) => [index("idx_verification_identifier").on(table.identifier)],
 );
 
 export const userRelations = relations(user, ({ many }) => ({

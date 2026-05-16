@@ -3,6 +3,7 @@ import * as schema from "@ponto-up-backend/db/schema/auth";
 import { env } from "@ponto-up-backend/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { admin } from "better-auth/plugins";
 
 export function createAuth() {
 	const db = createDb();
@@ -26,7 +27,12 @@ export function createAuth() {
 				httpOnly: true,
 			},
 		},
-		plugins: [],
+		plugins: [
+			admin({
+				defaultRole: "user",
+				adminUserIds: [],
+			}),
+		],
 	});
 }
 

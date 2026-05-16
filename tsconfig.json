@@ -1,3 +1,10 @@
 {
-	"extends": "@ponto-up-backend/config/tsconfig.base.json"
+	"extends": "@ponto-up-backend/config/tsconfig.base.json",
+	"files": [],
+	"references": [
+		{ "path": "./apps/server" },
+		{ "path": "./packages/auth" },
+		{ "path": "./packages/db" },
+		{ "path": "./packages/env" }
+	]
 }
