@@ -27,7 +27,7 @@ export const timeClockRoutes = (router: Router) => {
 	);
 
 	router.get(
-		"/time-clock/me",
+		"/time-clock/:userId",
 		requireAuth,
 		expressRouteAdapter(makeGetElectronicTimeClockByCreatorController()),
 	);

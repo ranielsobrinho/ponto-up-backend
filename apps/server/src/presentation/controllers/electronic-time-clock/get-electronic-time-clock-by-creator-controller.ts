@@ -8,7 +8,7 @@ export class GetElectronicTimeClockByCreatorController {
 
 	async handle(req: Request, res: Response, next: NextFunction): Promise<void> {
 		try {
-			const userId = req.headers["x-user-id"] as string;
+			const userId = req.params.userId as string;
 			const result = await this.getByCreatorUseCase.execute(userId);
 			res.status(200).json(result);
 		} catch (error) {

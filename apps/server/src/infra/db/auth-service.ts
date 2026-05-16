@@ -1,6 +1,7 @@
 import { auth } from "@ponto-up-backend/auth";
 import { createDb } from "@ponto-up-backend/db";
 import * as schema from "@ponto-up-backend/db/schema/auth";
+import { eq } from "drizzle-orm";
 import type { AuthServiceProtocol } from "@/data/protocols/db/auth-protocol";
 import type {
 	AdminSignUpParams,
@@ -9,11 +10,25 @@ import type {
 	SignUpParams,
 } from "@/domain/models/user";
 
-type AuthUser = typeof result.user & { role?: string };
-type AuthResponse = {
-	user: AuthUser;
+interface BetterAuthUser {
+	id: string;
+	name: string;
+	email: string;
+	emailVerified: boolean;
+	image: string | null;
+	createdAt: Date;
+	updatedAt: Date;
+	role?: string;
+	banned?: boolean;
+	banReason?: string;
+	banExpires?: Date;
+}
+
+interface BetterAuthResponse {
+	user: BetterAuthUser;
 	session?: { id: string; userId: string; expiresAt: Date };
-};
+	token?: string;
+}
 
 export class BetterAuthService implements AuthServiceProtocol {
 	private db = createDb();
@@ -25,7 +40,7 @@ export class BetterAuthService implements AuthServiceProtocol {
 				email: params.email,
 				password: params.password,
 			},
-		})) as AuthResponse;
+		})) as BetterAuthResponse;
 
 		return {
 			user: {
@@ -33,7 +48,7 @@ export class BetterAuthService implements AuthServiceProtocol {
 				name: result.user.name,
 				email: result.user.email,
 				emailVerified: result.user.emailVerified,
-				role: result.user.role ?? "user",
+				role: (result.user.role as "admin" | "user") ?? "user",
 				image: result.user.image ?? undefined,
 				createdAt: result.user.createdAt,
 				updatedAt: result.user.updatedAt,
@@ -43,6 +58,7 @@ export class BetterAuthService implements AuthServiceProtocol {
 				userId: result.session?.userId ?? "",
 				expiresAt: result.session?.expiresAt ?? new Date(),
 			},
+			token: result.token,
 		};
 	}
 
@@ -53,7 +69,7 @@ export class BetterAuthService implements AuthServiceProtocol {
 				email: params.email,
 				password: params.password,
 			},
-		})) as AuthResponse;
+		})) as BetterAuthResponse;
 
 		await this.db
 			.update(schema.user)
@@ -76,6 +92,7 @@ export class BetterAuthService implements AuthServiceProtocol {
 				userId: result.session?.userId ?? "",
 				expiresAt: result.session?.expiresAt ?? new Date(),
 			},
+			token: result.token,
 		};
 	}
 
@@ -85,7 +102,9 @@ export class BetterAuthService implements AuthServiceProtocol {
 				email: params.email,
 				password: params.password,
 			},
-		})) as AuthResponse;
+		})) as BetterAuthResponse;
+
+		console.log("oLha o result =>", result);
 
 		return {
 			user: {
@@ -93,7 +112,7 @@ export class BetterAuthService implements AuthServiceProtocol {
 				name: result.user.name,
 				email: result.user.email,
 				emailVerified: result.user.emailVerified,
-				role: result.user.role ?? "user",
+				role: (result.user.role as "admin" | "user") ?? "user",
 				image: result.user.image ?? undefined,
 				createdAt: result.user.createdAt,
 				updatedAt: result.user.updatedAt,
@@ -103,8 +122,7 @@ export class BetterAuthService implements AuthServiceProtocol {
 				userId: result.session?.userId ?? "",
 				expiresAt: result.session?.expiresAt ?? new Date(),
 			},
+			token: result.token,
 		};
 	}
 }
-
-import { eq } from "drizzle-orm";

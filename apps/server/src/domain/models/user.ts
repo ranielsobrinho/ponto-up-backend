@@ -34,4 +34,5 @@ export type AuthResult = {
 		userId: string;
 		expiresAt: Date;
 	};
+	token?: string;
 };
