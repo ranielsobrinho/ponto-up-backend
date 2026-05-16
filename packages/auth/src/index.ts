@@ -21,11 +21,17 @@ export function createAuth() {
 		secret: env.BETTER_AUTH_SECRET,
 		baseURL: env.BETTER_AUTH_URL,
 		advanced: {
+			cookiePrefix: "better-auth",
 			defaultCookieAttributes: {
-				sameSite: "none",
-				secure: true,
+				sameSite: "lax",
+				secure: env.NODE_ENV === "production",
 				httpOnly: true,
+				path: "/",
 			},
+		},
+		session: {
+			expiresIn: 60 * 60 * 24 * 3, // 3 days
+			updateAge: 60 * 60 * 24, // 1 day
 		},
 		plugins: [
 			admin({
