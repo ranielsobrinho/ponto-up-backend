@@ -9,7 +9,7 @@ export class ListElectronicTimeClockUseCase implements ListElectronicTimeClock {
 	constructor(private readonly service: ElectronicTimeClockProtocol) {}
 
 	async execute(
-		params?: ListElectronicTimeClockParams,
+		params: ListElectronicTimeClockParams,
 	): Promise<ElectronicTimeClockModel[]> {
 		return this.service.list(params);
 	}

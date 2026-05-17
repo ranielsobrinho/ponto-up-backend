@@ -104,8 +104,6 @@ export class BetterAuthService implements AuthServiceProtocol {
 			},
 		})) as BetterAuthResponse;
 
-		console.log("oLha o result =>", result);
-
 		return {
 			user: {
 				id: result.user.id,

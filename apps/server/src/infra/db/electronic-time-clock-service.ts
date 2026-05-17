@@ -1,6 +1,6 @@
 import { createDb } from "@ponto-up-backend/db";
 import * as schema from "@ponto-up-backend/db/schema/electronic-time-clock";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { ElectronicTimeClockProtocol } from "@/data/protocols/db/electronic-time-clock-protocol";
 import type {
 	CreateElectronicTimeClockParams,
@@ -32,32 +32,34 @@ export class ElectronicTimeClockService implements ElectronicTimeClockProtocol {
 		return result;
 	}
 
-	async list(params?: {
-		dateBegin?: Date;
-		dateEnd?: Date;
-	}): Promise<ElectronicTimeClockModel[]> {
-		const conditions = [];
+	private makeDefaultFieldsFilter(
+		params: ElectronicTimeClockProtocol.ListParams,
+	): any {
+		const filters: any[] = [];
+		const { startDate, endDate, userId } = params;
 
-		if (params?.dateBegin) {
-			conditions.push(
-				gte(schema.electronicTimeClock.createdAt, params.dateBegin),
+		if (startDate && endDate) {
+			filters.push(
+				sql`${schema.electronicTimeClock.createdAt} BETWEEN ${startDate} AND ${endDate}`,
 			);
 		}
 
-		if (params?.dateEnd) {
-			conditions.push(
-				lte(schema.electronicTimeClock.createdAt, params.dateEnd),
-			);
+		if (userId) {
+			filters.push(eq(schema.electronicTimeClock.createdBy, userId));
 		}
 
-		if (conditions.length > 0) {
-			return this.db
-				.select()
-				.from(schema.electronicTimeClock)
-				.where(and(...conditions));
-		}
+		return and(...filters);
+	}
 
-		return this.db.select().from(schema.electronicTimeClock);
+	async list(
+		params: ElectronicTimeClockProtocol.ListParams,
+	): Promise<ElectronicTimeClockModel[]> {
+		const defaultFieldsFilter = this.makeDefaultFieldsFilter(params);
+
+		return this.db
+			.select()
+			.from(schema.electronicTimeClock)
+			.where(defaultFieldsFilter);
 	}
 
 	async getById(id: number): Promise<ElectronicTimeClockModel | null> {

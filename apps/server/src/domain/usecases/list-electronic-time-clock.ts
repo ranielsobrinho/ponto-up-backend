@@ -1,12 +1,13 @@
 import type { ElectronicTimeClockModel } from "@/domain/models/electronic-time-clock";
 
 export interface ListElectronicTimeClockParams {
-	dateBegin?: Date;
-	dateEnd?: Date;
+	startDate?: Date;
+	endDate?: Date;
+	userId: string;
 }
 
 export interface ListElectronicTimeClock {
 	execute(
-		params?: ListElectronicTimeClockParams,
+		params: ListElectronicTimeClockParams,
 	): Promise<ElectronicTimeClockModel[]>;
 }
