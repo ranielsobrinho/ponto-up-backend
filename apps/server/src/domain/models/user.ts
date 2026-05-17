@@ -36,3 +36,23 @@ export type AuthResult = {
 	};
 	token?: string;
 };
+
+export type UpdateUserParams = {
+	name?: string;
+	email?: string;
+	image?: string;
+	role?: "admin" | "user";
+};
+
+export type ListUsersParams = {
+	page?: number;
+	limit?: number;
+};
+
+export type ListUsersResult = {
+	users: UserModel[];
+	total: number;
+	page: number;
+	limit: number;
+	totalPages: number;
+};
