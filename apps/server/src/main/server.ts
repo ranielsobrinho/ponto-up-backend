@@ -4,9 +4,11 @@ import { env } from "@ponto-up-backend/env/server";
 import cors from "cors";
 import { sql } from "drizzle-orm";
 import express from "express";
+import helmet from "helmet";
 import { logger } from "@/infra/logger/logger";
 import { requestLogger } from "@/main/middleware/logger";
 import { router } from "@/main/routes";
+import { limiter } from "./middleware/rate-limit";
 
 async function checkDatabaseConnection() {
 	try {
@@ -32,6 +34,8 @@ app.use(
 );
 
 app.use(express.json());
+app.use(helmet({}));
+app.use(limiter);
 
 app.use("/api", router);
 
