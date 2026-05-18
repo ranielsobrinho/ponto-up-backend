@@ -8,6 +8,7 @@ import helmet from "helmet";
 import { logger } from "@/infra/logger/logger";
 import { requestLogger } from "@/main/middleware/logger";
 import { router } from "@/main/routes";
+import { setupGracefulShutdown } from "./graceful-shutdown";
 import { limiter } from "./middleware/rate-limit";
 
 async function checkDatabaseConnection() {
@@ -41,10 +42,19 @@ app.use("/api", router);
 
 const PORT = process.env.PORT || 3000;
 
+let server: ReturnType<typeof app.listen>;
+
 (async () => {
 	await checkDatabaseConnection();
 
-	app.listen(PORT, () => {
+	server = app.listen(PORT, () => {
 		logger.info(`Server is running on http://localhost:${PORT}`);
 	});
+
+	const requestCounter = setupGracefulShutdown({
+		server,
+		db: db.$client,
+	});
+
+	app.use(requestCounter);
 })();
