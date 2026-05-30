@@ -32,6 +32,11 @@ export type WeeklyPresenceEntry = {
 	users: number;
 };
 
+export type GetDashboardParams = {
+	requestingUserId: string;
+	isAdmin: boolean;
+};
+
 export type DashboardStats = {
 	activeWorkers: number;
 	clockedInToday: number;
