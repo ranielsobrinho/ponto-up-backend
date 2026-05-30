@@ -282,7 +282,13 @@ export class DashboardService implements DashboardProtocol {
 			);
 
 		const resultMap = new Map<string, number>(
-			results.map((r) => [r.month, Number(r.hours)]),
+			results.map((r) => {
+				const monthStr =
+					typeof r.month === "string"
+						? r.month
+						: new Date(r.month).toISOString().slice(0, 10);
+				return [monthStr, Number(r.hours)];
+			}),
 		);
 
 		const monthList = this.generateLastMonths(5);
