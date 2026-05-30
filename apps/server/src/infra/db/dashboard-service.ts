@@ -262,15 +262,23 @@ export class DashboardService implements DashboardProtocol {
 
 		const filters: any[] = [
 			sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('month', current_date - interval '5 months')`,
-			sql`extract(dow from ${clockSchema.electronicTimeClock.clockOut}) between 1 and 5`,
-			sql`${clockSchema.electronicTimeClock.clockOut}::time > '17:00:00'`,
 		];
 		if (userFilter) filters.push(userFilter);
 
 		const results = await this.db
 			.select({
 				month: sql<string>`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn})::date`,
-				hours: sql<number>`coalesce(sum(extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - date_trunc('day', ${clockSchema.electronicTimeClock.clockOut}) - interval '17 hours')) / 3600), 0)`,
+				hours: sql<number>`coalesce(sum(
+					CASE
+						WHEN extract(dow from ${clockSchema.electronicTimeClock.clockOut}) between 1 and 5
+							AND ${clockSchema.electronicTimeClock.clockOut}::time > '17:00:00'
+						THEN extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - date_trunc('day', ${clockSchema.electronicTimeClock.clockOut}) - interval '17 hours')) / 3600
+						WHEN extract(dow from ${clockSchema.electronicTimeClock.clockOut}) = 6
+							AND ${clockSchema.electronicTimeClock.clockOut}::time > '12:00:00'
+						THEN greatest(extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - greatest(${clockSchema.electronicTimeClock.clockIn}, date_trunc('day', ${clockSchema.electronicTimeClock.clockIn}) + interval '12 hours'))) / 3600, 0)
+						ELSE 0
+					END
+				), 0)`,
 			})
 			.from(clockSchema.electronicTimeClock)
 			.where(and(...filters))
