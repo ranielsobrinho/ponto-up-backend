@@ -2,6 +2,7 @@ import { auth } from "@ponto-up-backend/auth";
 import { toNodeHandler } from "better-auth/node";
 import { Router } from "express";
 import { authRoutes } from "@/main/routes/auth-routes";
+import { dashboardRoutes } from "@/main/routes/dashboard-routes";
 import { timeClockRoutes } from "@/main/routes/time-clock-routes";
 import { userRoutes } from "@/main/routes/user-routes";
 
@@ -12,6 +13,8 @@ router.all("/auth{/*path}", toNodeHandler(auth));
 authRoutes(router);
 
 timeClockRoutes(router);
+
+dashboardRoutes(router);
 
 userRoutes(router);
 
