@@ -243,6 +243,18 @@ export class DashboardService implements DashboardProtocol {
 		}));
 	}
 
+	private generateLastMonths(count: number): string[] {
+		const months: string[] = [];
+		const now = new Date();
+		for (let i = count - 1; i >= 0; i--) {
+			const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+			const y = d.getFullYear();
+			const m = String(d.getMonth() + 1).padStart(2, "0");
+			months.push(`${y}-${m}-01`);
+		}
+		return months;
+	}
+
 	private async getExtraHoursLast5Months(
 		userId: string | null,
 	): Promise<MonthlyHours[]> {
@@ -269,9 +281,15 @@ export class DashboardService implements DashboardProtocol {
 				sql`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn})`,
 			);
 
-		return results.map((r) => ({
-			month: r.month,
-			hours: Math.round(Number(r.hours) * 100) / 100,
+		const resultMap = new Map<string, number>(
+			results.map((r) => [r.month, Number(r.hours)]),
+		);
+
+		const monthList = this.generateLastMonths(5);
+
+		return monthList.map((month) => ({
+			month,
+			hours: Math.round((resultMap.get(month) ?? 0) * 100) / 100,
 		}));
 	}
 
