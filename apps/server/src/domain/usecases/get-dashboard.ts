@@ -1,5 +1,8 @@
-import type { DashboardStats } from "@/domain/models/dashboard";
+import type {
+	DashboardStats,
+	GetDashboardParams,
+} from "@/domain/models/dashboard";
 
 export interface GetDashboard {
-	execute(): Promise<DashboardStats>;
+	execute(params: GetDashboardParams): Promise<DashboardStats>;
 }
