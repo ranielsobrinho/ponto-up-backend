@@ -5,6 +5,7 @@ import { and, eq, sql } from "drizzle-orm";
 import type { DashboardProtocol } from "@/data/protocols/db/dashboard-protocol";
 import type {
 	DashboardStats,
+	GetDashboardParams,
 	LatestRegistryEntry,
 	MonthlyCount,
 	MonthlyHours,
@@ -24,7 +25,9 @@ const DAY_NAMES = [
 export class DashboardService implements DashboardProtocol {
 	private db = createDb();
 
-	async getStats(): Promise<DashboardStats> {
+	async getStats(params: GetDashboardParams): Promise<DashboardStats> {
+		const { requestingUserId, isAdmin } = params;
+
 		const [
 			activeWorkers,
 			clockedInToday,
@@ -35,14 +38,14 @@ export class DashboardService implements DashboardProtocol {
 			extraHoursLast5Months,
 			latestRegistries,
 		] = await Promise.all([
-			this.getActiveWorkers(),
-			this.getClockedInToday(),
-			this.getLateClockInsPerMonth(),
-			this.getOvertimeSummary(),
-			this.getAvgHoursPerDay(),
-			this.getWeeklyPresence(),
-			this.getExtraHoursLast5Months(),
-			this.getLatestRegistries(),
+			this.getActiveWorkers(isAdmin ? null : requestingUserId),
+			this.getClockedInToday(isAdmin ? null : requestingUserId),
+			this.getLateClockInsPerMonth(isAdmin ? null : requestingUserId),
+			this.getOvertimeSummary(isAdmin ? null : requestingUserId),
+			this.getAvgHoursPerDay(isAdmin ? null : requestingUserId),
+			this.getWeeklyPresence(isAdmin ? null : requestingUserId),
+			this.getExtraHoursLast5Months(isAdmin ? null : requestingUserId),
+			this.getLatestRegistries(isAdmin ? null : requestingUserId),
 		]);
 
 		return {
@@ -58,7 +61,14 @@ export class DashboardService implements DashboardProtocol {
 		};
 	}
 
-	private async getActiveWorkers(): Promise<number> {
+	private makeUserFilter(userId: string | null) {
+		if (!userId) return undefined;
+		return eq(clockSchema.electronicTimeClock.createdBy, userId);
+	}
+
+	private async getActiveWorkers(userId: string | null): Promise<number> {
+		if (userId) return 1;
+
 		const [result] = await this.db
 			.select({ count: sql<number>`count(*)` })
 			.from(authSchema.user)
@@ -67,27 +77,39 @@ export class DashboardService implements DashboardProtocol {
 		return Number(result?.count ?? 0);
 	}
 
-	private async getClockedInToday(): Promise<number> {
+	private async getClockedInToday(userId: string | null): Promise<number> {
+		const filters: any[] = [
+			sql`${clockSchema.electronicTimeClock.clockIn}::date = current_date`,
+		];
+		const userFilter = this.makeUserFilter(userId);
+		if (userFilter) filters.push(userFilter);
+
 		const [result] = await this.db
 			.select({
 				count: sql<number>`count(distinct ${clockSchema.electronicTimeClock.createdBy})`,
 			})
 			.from(clockSchema.electronicTimeClock)
-			.where(
-				sql`${clockSchema.electronicTimeClock.clockIn}::date = current_date`,
-			);
+			.where(and(...filters));
 
 		return Number(result?.count ?? 0);
 	}
 
-	private async getLateClockInsPerMonth(): Promise<MonthlyCount[]> {
+	private async getLateClockInsPerMonth(
+		userId: string | null,
+	): Promise<MonthlyCount[]> {
+		const filters: any[] = [
+			sql`${clockSchema.electronicTimeClock.clockIn}::time > '08:00:00'`,
+		];
+		const userFilter = this.makeUserFilter(userId);
+		if (userFilter) filters.push(userFilter);
+
 		const results = await this.db
 			.select({
 				month: sql<string>`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn})::date`,
 				count: sql<number>`count(*)`,
 			})
 			.from(clockSchema.electronicTimeClock)
-			.where(sql`${clockSchema.electronicTimeClock.clockIn}::time > '08:00:00'`)
+			.where(and(...filters))
 			.groupBy(
 				sql`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn})`,
 			)
@@ -101,31 +123,37 @@ export class DashboardService implements DashboardProtocol {
 		}));
 	}
 
-	private async getOvertimeSummary(): Promise<{
+	private async getOvertimeSummary(userId: string | null): Promise<{
 		totalOvertimeHours: number;
 		weekdayAfter17Hours: number;
 		saturdayHours: number;
 	}> {
+		const userFilter = this.makeUserFilter(userId);
+
+		const weekdayFilters: any[] = [
+			sql`extract(dow from ${clockSchema.electronicTimeClock.clockOut}) between 1 and 5`,
+			sql`${clockSchema.electronicTimeClock.clockOut}::time > '17:00:00'`,
+		];
+		if (userFilter) weekdayFilters.push(userFilter);
+
 		const [weekdayResult] = await this.db
 			.select({
 				hours: sql<number>`coalesce(sum(extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - date_trunc('day', ${clockSchema.electronicTimeClock.clockOut}) - interval '17 hours')) / 3600), 0)`,
 			})
 			.from(clockSchema.electronicTimeClock)
-			.where(
-				and(
-					sql`extract(dow from ${clockSchema.electronicTimeClock.clockOut}) between 1 and 5`,
-					sql`${clockSchema.electronicTimeClock.clockOut}::time > '17:00:00'`,
-				),
-			);
+			.where(and(...weekdayFilters));
+
+		const saturdayFilters: any[] = [
+			sql`extract(dow from ${clockSchema.electronicTimeClock.clockIn}) = 6`,
+		];
+		if (userFilter) saturdayFilters.push(userFilter);
 
 		const [saturdayResult] = await this.db
 			.select({
 				hours: sql<number>`coalesce(sum(extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - ${clockSchema.electronicTimeClock.clockIn})) / 3600), 0)`,
 			})
 			.from(clockSchema.electronicTimeClock)
-			.where(
-				sql`extract(dow from ${clockSchema.electronicTimeClock.clockIn}) = 6`,
-			);
+			.where(and(...saturdayFilters));
 
 		const weekday = Number(weekdayResult?.hours ?? 0);
 		const saturday = Number(saturdayResult?.hours ?? 0);
@@ -137,29 +165,38 @@ export class DashboardService implements DashboardProtocol {
 		};
 	}
 
-	private async getAvgHoursPerDay(): Promise<number> {
+	private async getAvgHoursPerDay(userId: string | null): Promise<number> {
+		const userFilter = this.makeUserFilter(userId);
+		const filters = userFilter ? [userFilter] : [];
+
 		const [result] = await this.db
 			.select({
 				avg: sql<number>`coalesce(avg(extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - ${clockSchema.electronicTimeClock.clockIn})) / 3600), 0)`,
 			})
-			.from(clockSchema.electronicTimeClock);
+			.from(clockSchema.electronicTimeClock)
+			.where(filters.length > 0 ? and(...filters) : undefined);
 
 		return Math.round(Number(result?.avg ?? 0) * 100) / 100;
 	}
 
-	private async getWeeklyPresence(): Promise<WeeklyPresenceEntry[]> {
+	private async getWeeklyPresence(
+		userId: string | null,
+	): Promise<WeeklyPresenceEntry[]> {
+		const userFilter = this.makeUserFilter(userId);
+
+		const filters: any[] = [
+			sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('week', current_date)`,
+			sql`${clockSchema.electronicTimeClock.clockIn} < date_trunc('week', current_date) + interval '7 days'`,
+		];
+		if (userFilter) filters.push(userFilter);
+
 		const results = await this.db
 			.select({
 				dayOfWeek: sql<number>`extract(dow from ${clockSchema.electronicTimeClock.clockIn})`,
 				users: sql<number>`count(distinct ${clockSchema.electronicTimeClock.createdBy})`,
 			})
 			.from(clockSchema.electronicTimeClock)
-			.where(
-				and(
-					sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('week', current_date)`,
-					sql`${clockSchema.electronicTimeClock.clockIn} < date_trunc('week', current_date) + interval '7 days'`,
-				),
-			)
+			.where(and(...filters))
 			.groupBy(
 				sql`extract(dow from ${clockSchema.electronicTimeClock.clockIn})`,
 			)
@@ -174,22 +211,25 @@ export class DashboardService implements DashboardProtocol {
 		}));
 	}
 
-	private async getExtraHoursLast5Months(): Promise<MonthlyHours[]> {
+	private async getExtraHoursLast5Months(
+		userId: string | null,
+	): Promise<MonthlyHours[]> {
+		const userFilter = this.makeUserFilter(userId);
+
+		const filters: any[] = [
+			sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('month', current_date - interval '5 months')`,
+			sql`extract(dow from ${clockSchema.electronicTimeClock.clockOut}) between 1 and 5`,
+			sql`${clockSchema.electronicTimeClock.clockOut}::time > '17:00:00'`,
+		];
+		if (userFilter) filters.push(userFilter);
+
 		const results = await this.db
 			.select({
 				month: sql<string>`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn})::date`,
 				hours: sql<number>`coalesce(sum(extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - date_trunc('day', ${clockSchema.electronicTimeClock.clockOut}) - interval '17 hours')) / 3600), 0)`,
 			})
 			.from(clockSchema.electronicTimeClock)
-			.where(
-				and(
-					sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('month', current_date - interval '5 months')`,
-					and(
-						sql`extract(dow from ${clockSchema.electronicTimeClock.clockOut}) between 1 and 5`,
-						sql`${clockSchema.electronicTimeClock.clockOut}::time > '17:00:00'`,
-					),
-				),
-			)
+			.where(and(...filters))
 			.groupBy(
 				sql`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn})`,
 			)
@@ -203,7 +243,12 @@ export class DashboardService implements DashboardProtocol {
 		}));
 	}
 
-	private async getLatestRegistries(): Promise<LatestRegistryEntry[]> {
+	private async getLatestRegistries(
+		userId: string | null,
+	): Promise<LatestRegistryEntry[]> {
+		const userFilter = this.makeUserFilter(userId);
+		const filters = userFilter ? [userFilter] : [];
+
 		const results = await this.db
 			.select({
 				id: clockSchema.electronicTimeClock.id,
@@ -221,6 +266,7 @@ export class DashboardService implements DashboardProtocol {
 				authSchema.user,
 				eq(clockSchema.electronicTimeClock.createdBy, authSchema.user.id),
 			)
+			.where(filters.length > 0 ? and(...filters) : undefined)
 			.orderBy(sql`${clockSchema.electronicTimeClock.createdAt} desc`)
 			.limit(20);
 
