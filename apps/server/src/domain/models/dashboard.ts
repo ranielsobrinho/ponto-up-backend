@@ -10,11 +10,6 @@ export type LatestRegistryEntry = {
 	userEmail: string;
 };
 
-export type MonthlyCount = {
-	month: string;
-	count: number;
-};
-
 export type MonthlyHours = {
 	month: string;
 	hours: number;
@@ -41,7 +36,7 @@ export type DashboardStats = {
 	activeWorkers: number;
 	clockedInToday: number;
 	notClockedInToday: number;
-	lateClockInsPerMonth: MonthlyCount[];
+	lateClockInsPerMonth: number;
 	overtimeSummary: OvertimeSummary;
 	avgHoursPerDay: number;
 	weeklyPresence: WeeklyPresenceEntry[];

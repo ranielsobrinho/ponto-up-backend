@@ -7,7 +7,6 @@ import type {
 	DashboardStats,
 	GetDashboardParams,
 	LatestRegistryEntry,
-	MonthlyCount,
 	MonthlyHours,
 	WeeklyPresenceEntry,
 } from "@/domain/models/dashboard";
@@ -96,31 +95,22 @@ export class DashboardService implements DashboardProtocol {
 
 	private async getLateClockInsPerMonth(
 		userId: string | null,
-	): Promise<MonthlyCount[]> {
+	): Promise<number> {
 		const filters: any[] = [
 			sql`${clockSchema.electronicTimeClock.clockIn}::time > '08:00:00'`,
+			sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('month', current_date)`,
 		];
 		const userFilter = this.makeUserFilter(userId);
 		if (userFilter) filters.push(userFilter);
 
-		const results = await this.db
+		const [result] = await this.db
 			.select({
-				month: sql<string>`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn})::date`,
 				count: sql<number>`count(*)`,
 			})
 			.from(clockSchema.electronicTimeClock)
-			.where(and(...filters))
-			.groupBy(
-				sql`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn})`,
-			)
-			.orderBy(
-				sql`date_trunc('month', ${clockSchema.electronicTimeClock.clockIn}) desc`,
-			);
+			.where(and(...filters));
 
-		return results.map((r) => ({
-			month: r.month,
-			count: Number(r.count),
-		}));
+		return Number(result?.count ?? 0);
 	}
 
 	private async getOvertimeSummary(userId: string | null): Promise<{
