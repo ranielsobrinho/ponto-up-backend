@@ -34,6 +34,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 			}
 
 			req.headers["x-user-id"] = session.userId;
+			req.headers["x-user-role"] = session.user.role;
 			next();
 		})
 		.catch((error) => {
