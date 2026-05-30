@@ -37,6 +37,7 @@ export type DashboardStats = {
 	clockedInToday: number;
 	notClockedInToday: number;
 	lateClockInsPerMonth: number;
+	overtimeHoursCurrentMonth: number;
 	overtimeSummary: OvertimeSummary;
 	avgHoursPerDay: number;
 	weeklyPresence: WeeklyPresenceEntry[];

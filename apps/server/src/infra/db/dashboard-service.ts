@@ -31,6 +31,7 @@ export class DashboardService implements DashboardProtocol {
 			activeWorkers,
 			clockedInToday,
 			lateClockInsPerMonth,
+			overtimeHoursCurrentMonth,
 			overtimeSummary,
 			avgHoursPerDay,
 			weeklyPresence,
@@ -40,6 +41,7 @@ export class DashboardService implements DashboardProtocol {
 			this.getActiveWorkers(isAdmin ? null : requestingUserId),
 			this.getClockedInToday(isAdmin ? null : requestingUserId),
 			this.getLateClockInsPerMonth(isAdmin ? null : requestingUserId),
+			this.getOvertimeHoursCurrentMonth(isAdmin ? null : requestingUserId),
 			this.getOvertimeSummary(isAdmin ? null : requestingUserId),
 			this.getAvgHoursPerDay(isAdmin ? null : requestingUserId),
 			this.getWeeklyPresence(isAdmin ? null : requestingUserId),
@@ -52,6 +54,7 @@ export class DashboardService implements DashboardProtocol {
 			clockedInToday,
 			notClockedInToday: activeWorkers - clockedInToday,
 			lateClockInsPerMonth,
+			overtimeHoursCurrentMonth,
 			overtimeSummary,
 			avgHoursPerDay,
 			weeklyPresence,
@@ -111,6 +114,45 @@ export class DashboardService implements DashboardProtocol {
 			.where(and(...filters));
 
 		return Number(result?.count ?? 0);
+	}
+
+	private async getOvertimeHoursCurrentMonth(
+		userId: string | null,
+	): Promise<number> {
+		const userFilter = this.makeUserFilter(userId);
+
+		const weekdayFilters: any[] = [
+			sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('month', current_date)`,
+			sql`extract(dow from ${clockSchema.electronicTimeClock.clockOut}) between 1 and 5`,
+			sql`${clockSchema.electronicTimeClock.clockOut}::time > '17:00:00'`,
+		];
+		if (userFilter) weekdayFilters.push(userFilter);
+
+		const [weekdayResult] = await this.db
+			.select({
+				hours: sql<number>`coalesce(sum(extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - date_trunc('day', ${clockSchema.electronicTimeClock.clockOut}) - interval '17 hours')) / 3600), 0)`,
+			})
+			.from(clockSchema.electronicTimeClock)
+			.where(and(...weekdayFilters));
+
+		const saturdayFilters: any[] = [
+			sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('month', current_date)`,
+			sql`extract(dow from ${clockSchema.electronicTimeClock.clockIn}) = 6`,
+			sql`${clockSchema.electronicTimeClock.clockOut}::time > '12:00:00'`,
+		];
+		if (userFilter) saturdayFilters.push(userFilter);
+
+		const [saturdayResult] = await this.db
+			.select({
+				hours: sql<number>`coalesce(sum(greatest(extract(epoch from (${clockSchema.electronicTimeClock.clockOut} - greatest(${clockSchema.electronicTimeClock.clockIn}, date_trunc('day', ${clockSchema.electronicTimeClock.clockIn}) + interval '12 hours'))) / 3600, 0)), 0)`,
+			})
+			.from(clockSchema.electronicTimeClock)
+			.where(and(...saturdayFilters));
+
+		const weekday = Number(weekdayResult?.hours ?? 0);
+		const saturday = Number(saturdayResult?.hours ?? 0);
+
+		return Math.round((weekday + saturday) * 100) / 100;
 	}
 
 	private async getOvertimeSummary(userId: string | null): Promise<{
