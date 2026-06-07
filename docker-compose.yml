@@ -1,0 +1,27 @@
+name: ponto-up-backend
+
+services:
+  postgres:
+    extends:
+      file: packages/db/docker-compose.yml
+      service: postgres
+
+  app:
+    build: .
+    container_name: ponto-up-backend-app
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/ponto-up-backend
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3001}
+      ADMIN_SECRET: ${ADMIN_SECRET}
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  ponto-up-backend_postgres_data:
