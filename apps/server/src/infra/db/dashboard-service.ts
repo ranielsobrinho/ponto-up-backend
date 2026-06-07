@@ -100,7 +100,7 @@ export class DashboardService implements DashboardProtocol {
 		userId: string | null,
 	): Promise<number> {
 		const filters: any[] = [
-			sql`${clockSchema.electronicTimeClock.clockIn}::time > '08:00:00'`,
+			sql`${clockSchema.electronicTimeClock.clockIn}::time BETWEEN '08:00:00' AND '11:59:59'`,
 			sql`${clockSchema.electronicTimeClock.clockIn} >= date_trunc('month', current_date)`,
 		];
 		const userFilter = this.makeUserFilter(userId);
