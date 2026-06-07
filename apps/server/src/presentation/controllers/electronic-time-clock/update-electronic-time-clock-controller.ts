@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import type { UpdateElectronicTimeClock } from "@/domain/usecases/update-electronic-time-clock";
+import { parseISODate } from "@/main/utils/date";
 
 interface UpdateTimeClockBody {
 	title?: string;
@@ -25,8 +26,8 @@ export class UpdateElectronicTimeClockController {
 
 			const updateParams = {
 				...(body.title && { title: body.title }),
-				...(body.clockIn && { clockIn: new Date(body.clockIn) }),
-				...(body.clockOut && { clockOut: new Date(body.clockOut) }),
+				...(body.clockIn && { clockIn: parseISODate(body.clockIn) }),
+				...(body.clockOut && { clockOut: parseISODate(body.clockOut) }),
 				...(body.observations !== undefined && {
 					observations: body.observations,
 				}),

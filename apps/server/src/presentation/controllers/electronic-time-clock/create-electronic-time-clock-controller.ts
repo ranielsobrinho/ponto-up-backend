@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import type { CreateElectronicTimeClock } from "@/domain/usecases/create-electronic-time-clock";
+import { parseISODate } from "@/main/utils/date";
 
 interface CreateTimeClockBody {
 	title: string;
@@ -18,8 +19,8 @@ export class CreateElectronicTimeClockController {
 
 			const result = await this.createUseCase.execute({
 				title: body.title,
-				clockIn: new Date(body.clockIn),
-				clockOut: new Date(body.clockOut),
+				clockIn: parseISODate(body.clockIn),
+				clockOut: parseISODate(body.clockOut),
 				observations: body.observations,
 				createdBy: userId,
 			});

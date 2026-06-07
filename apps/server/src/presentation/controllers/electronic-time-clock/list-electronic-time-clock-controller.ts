@@ -3,6 +3,7 @@ import type {
 	ListElectronicTimeClock,
 	ListElectronicTimeClockParams,
 } from "@/domain/usecases/list-electronic-time-clock";
+import { parseISODate } from "@/main/utils/date";
 
 export class ListElectronicTimeClockController {
 	constructor(private readonly listUseCase: ListElectronicTimeClock) {}
@@ -14,8 +15,8 @@ export class ListElectronicTimeClockController {
 
 			const params: ListElectronicTimeClockParams = {
 				userId,
-				startDate: new Date(`${startDate}T00:00:00`),
-				endDate: new Date(`${endDate}T23:59:59`),
+				startDate: parseISODate(`${startDate}T00:00:00`),
+				endDate: parseISODate(`${endDate}T23:59:59`),
 			};
 
 			const result = await this.listUseCase.execute(params);
